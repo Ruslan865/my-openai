@@ -2,44 +2,69 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8">
-  <title>Al AI – Apisiz Mini Ağıllı Köməkçi</title>
+  <title>Super Kod AI</title>
   <style>
-    body { font-family: sans-serif; padding: 30px; background: #f4f4f4; }
-    input, button { padding: 10px; margin: 5px; width: 300px; }
-    #response { margin-top: 20px; padding: 20px; background: #fff; border-radius: 10px; box-shadow: 0 0 5px #ccc; }
+    body { font-family: sans-serif; background: #f3f3f3; padding: 20px; }
+    #chat { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .message { margin-bottom: 10px; }
+    .user { color: blue; }
+    .ai { color: green; }
+    input, button { padding: 10px; font-size: 16px; margin-top: 10px; width: 100%; }
   </style>
 </head>
 <body>
-  <h2>Salam! Sual ver:</h2>
-  <input type="text" id="userInput" placeholder="Məsələn: Günəş nədir?">
-  <button onclick="searchWeb()">Cavab Axtar</button>
-
-  <div id="response">Burada cavab görünəcək</div>
+  <div id="chat">
+    <div id="messages"></div>
+    <input type="text" id="input" placeholder="Sual ver...">
+    <button onclick="handleMessage()">Göndər</button>
+  </div>
 
   <script>
-    async function searchWeb() {
-      const query = document.getElementById("userInput").value;
-      const url = `https://api.allorigins.win/raw?url=https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    let messagesDiv = document.getElementById('messages');
+    let inputField = document.getElementById('input');
 
-      const responseDiv = document.getElementById("response");
-      responseDiv.innerHTML = "Axtarılır...";
-
-      try {
-        const res = await fetch(url);
-        const html = await res.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-
-        const results = doc.querySelectorAll(".result__snippet");
-        let output = "";
-        results.forEach((el, index) => {
-          if (index < 3) output += `<p>${el.innerText}</p>`;
-        });
-
-        responseDiv.innerHTML = output || "Cavab tapılmadı.";
-      } catch (err) {
-        responseDiv.innerHTML = "Xəta baş verdi və ya bağlantı bloklandı.";
+    let brain = {
+      memory: JSON.parse(localStorage.getItem('brain')) || [],
+      learn: function(input, response) {
+        this.memory.push({ input, response });
+        localStorage.setItem("brain", JSON.stringify(this.memory));
+      },
+      respond: function(input) {
+        let known = this.memory.find(x => input.toLowerCase().includes(x.input.toLowerCase()));
+        return known ? known.response : null;
       }
+    };
+
+    async function handleMessage() {
+      let userInput = inputField.value.trim();
+      if (!userInput) return;
+
+      addMessage(userInput, 'user');
+      inputField.value = '';
+
+      let response = brain.respond(userInput);
+
+      if (response) {
+        addMessage(response, 'ai');
+        return;
+      }
+
+      addMessage("Axtarıram...", 'ai');
+      let result = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(userInput)}&format=json&no_redirect=1&no_html=1&t=super_kod`);
+      let data = await result.json();
+
+      let answer = data.AbstractText || data.Answer || "Hazır cavab tapa bilmədim, amma yadda saxlayıram.";
+      addMessage(answer, 'ai');
+
+      brain.learn(userInput, answer);
+    }
+
+    function addMessage(text, sender) {
+      let div = document.createElement('div');
+      div.className = 'message ' + sender;
+      div.textContent = (sender === 'user' ? 'Sən: ' : 'AI: ') + text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
   </script>
 </body>
