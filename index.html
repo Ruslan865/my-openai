@@ -2,69 +2,54 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8">
-  <title>Super Kod AI</title>
+  <title>Super AI Kod</title>
   <style>
-    body { font-family: sans-serif; background: #f3f3f3; padding: 20px; }
-    #chat { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .message { margin-bottom: 10px; }
-    .user { color: blue; }
-    .ai { color: green; }
-    input, button { padding: 10px; font-size: 16px; margin-top: 10px; width: 100%; }
+    body { font-family: sans-serif; background: #111; color: #0f0; padding: 20px; }
+    input, button { font-size: 18px; padding: 5px; margin-top: 10px; width: 100%; }
+    #output { margin-top: 20px; white-space: pre-line; }
   </style>
 </head>
 <body>
-  <div id="chat">
-    <div id="messages"></div>
-    <input type="text" id="input" placeholder="Sual ver...">
-    <button onclick="handleMessage()">Göndər</button>
-  </div>
+  <h2>🧠 Super AI Kod</h2>
+  <input id="question" placeholder="Sual ver..." />
+  <button onclick="ask()">Soruş</button>
+  <div id="output"></div>
 
   <script>
-    let messagesDiv = document.getElementById('messages');
-    let inputField = document.getElementById('input');
+    const depo = {}; // Yaddaş bazası
 
-    let brain = {
-      memory: JSON.parse(localStorage.getItem('brain')) || [],
-      learn: function(input, response) {
-        this.memory.push({ input, response });
-        localStorage.setItem("brain", JSON.stringify(this.memory));
-      },
-      respond: function(input) {
-        let known = this.memory.find(x => input.toLowerCase().includes(x.input.toLowerCase()));
-        return known ? known.response : null;
+    async function searchWeb(query) {
+      const proxyUrl = 'https://api.allorigins.win/raw?url=';
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+      try {
+        const res = await fetch(proxyUrl + searchUrl);
+        const html = await res.text();
+        const matches = html.match(/<span class="hgKElc">(.+?)<\/span>/);
+        if (matches && matches[1]) return matches[1];
+        return "Əlaqəli cavab tapılmadı.";
+      } catch (err) {
+        return "Scraping zamanı xəta baş verdi.";
       }
-    };
-
-    async function handleMessage() {
-      let userInput = inputField.value.trim();
-      if (!userInput) return;
-
-      addMessage(userInput, 'user');
-      inputField.value = '';
-
-      let response = brain.respond(userInput);
-
-      if (response) {
-        addMessage(response, 'ai');
-        return;
-      }
-
-      addMessage("Axtarıram...", 'ai');
-      let result = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(userInput)}&format=json&no_redirect=1&no_html=1&t=super_kod`);
-      let data = await result.json();
-
-      let answer = data.AbstractText || data.Answer || "Hazır cavab tapa bilmədim, amma yadda saxlayıram.";
-      addMessage(answer, 'ai');
-
-      brain.learn(userInput, answer);
     }
 
-    function addMessage(text, sender) {
-      let div = document.createElement('div');
-      div.className = 'message ' + sender;
-      div.textContent = (sender === 'user' ? 'Sən: ' : 'AI: ') + text;
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    async function ask() {
+      const input = document.getElementById("question");
+      const question = input.value.trim();
+      input.value = "";
+
+      if (!question) return;
+
+      const lower = question.toLowerCase();
+      document.getElementById("output").innerText += `\n🙋‍♂️ Sən: ${question}`;
+
+      if (depo[lower]) {
+        document.getElementById("output").innerText += `\n🤖 Cavab (depo): ${depo[lower]}`;
+      } else {
+        document.getElementById("output").innerText += `\n🔍 Axtarılır...`;
+        const cavab = await searchWeb(question);
+        depo[lower] = cavab; // yadda saxla
+        document.getElementById("output").innerText += `\n🤖 Cavab (web): ${cavab}`;
+      }
     }
   </script>
 </body>
