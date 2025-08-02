@@ -2,54 +2,95 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8">
-  <title>Super AI Kod</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Al Smart Bot</title>
   <style>
-    body { font-family: sans-serif; background: #111; color: #0f0; padding: 20px; }
-    input, button { font-size: 18px; padding: 5px; margin-top: 10px; width: 100%; }
-    #output { margin-top: 20px; white-space: pre-line; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #101820;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    h1 {
+      color: #00ffcc;
+    }
+    input, button {
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    #log {
+      margin-top: 20px;
+      max-width: 600px;
+      background: #1e2a36;
+      padding: 15px;
+      border-radius: 10px;
+      height: 300px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
-  <h2>🧠 Super AI Kod</h2>
-  <input id="question" placeholder="Sual ver..." />
+  <h1>🤖 Salam, mən Al Smart!</h1>
+  <input id="question" type="text" placeholder="Məndən soruş...">
   <button onclick="ask()">Soruş</button>
-  <div id="output"></div>
+  <div id="log"></div>
 
   <script>
-    const depo = {}; // Yaddaş bazası
+    let memory = JSON.parse(localStorage.getItem('smart_memory') || '{}');
 
-    async function searchWeb(query) {
-      const proxyUrl = 'https://api.allorigins.win/raw?url=';
-      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    function log(msg, type = 'bot') {
+      const div = document.createElement('div');
+      div.textContent = (type === 'user' ? '🧑‍💻: ' : '🤖: ') + msg;
+      div.style.color = type === 'user' ? '#ccc' : '#00ffcc';
+      document.getElementById('log').appendChild(div);
+      document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+    }
+
+    function learn(q, a) {
+      memory[q.toLowerCase()] = a;
+      localStorage.setItem('smart_memory', JSON.stringify(memory));
+    }
+
+    async function smartSearch(query) {
+      const url = `https://api.allorigins.win/raw?url=https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`;
       try {
-        const res = await fetch(proxyUrl + searchUrl);
-        const html = await res.text();
-        const matches = html.match(/<span class="hgKElc">(.+?)<\/span>/);
-        if (matches && matches[1]) return matches[1];
-        return "Əlaqəli cavab tapılmadı.";
-      } catch (err) {
-        return "Scraping zamanı xəta baş verdi.";
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.AbstractText) return data.AbstractText;
+        if (data.RelatedTopics && data.RelatedTopics[0]?.Text) return data.RelatedTopics[0].Text;
+        return "Təəssüf, bu barədə məlumat tapa bilmədim.";
+      } catch {
+        return "Axtarış zamanı xəta baş verdi.";
       }
     }
 
     async function ask() {
       const input = document.getElementById("question");
-      const question = input.value.trim();
-      input.value = "";
+      const q = input.value.trim();
+      if (!q) return;
 
-      if (!question) return;
+      log(q, 'user');
 
-      const lower = question.toLowerCase();
-      document.getElementById("output").innerText += `\n🙋‍♂️ Sən: ${question}`;
-
-      if (depo[lower]) {
-        document.getElementById("output").innerText += `\n🤖 Cavab (depo): ${depo[lower]}`;
-      } else {
-        document.getElementById("output").innerText += `\n🔍 Axtarılır...`;
-        const cavab = await searchWeb(question);
-        depo[lower] = cavab; // yadda saxla
-        document.getElementById("output").innerText += `\n🤖 Cavab (web): ${cavab}`;
+      if (memory[q.toLowerCase()]) {
+        log(memory[q.toLowerCase()]);
+        return;
       }
+
+      let answer = "Düşünürəm...";
+      log(answer);
+
+      // Scraper-style search
+      answer = await smartSearch(q);
+
+      // Learn new
+      learn(q, answer);
+      log(answer);
+      input.value = "";
     }
   </script>
 </body>
