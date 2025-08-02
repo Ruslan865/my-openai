@@ -1,205 +1,259 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SK-1 Lokal AI — Açar tələb olunmur</title>
-<style>
-  body {
-    background: #000;
-    color: #0f0;
-    font-family: monospace;
-    margin: 0; padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-  #output {
-    flex-grow: 1;
-    overflow-y: auto;
-    border: 1px solid #0f0;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: #111;
-    border-radius: 8px;
-  }
-  #inputArea {
-    display: flex;
-    gap: 0.5rem;
-  }
-  #input {
-    flex-grow: 1;
-    background: #000;
-    border: 1px solid #0f0;
-    color: #0f0;
-    font-family: monospace;
-    font-size: 1.1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    outline: none;
-  }
-  button {
-    background: #0f0;
-    border: none;
-    color: #000;
-    font-weight: bold;
-    padding: 0 1rem;
-    cursor: pointer;
-    border-radius: 8px;
-    font-size: 1.1rem;
-  }
-  .message {
-    margin-bottom: 0.75rem;
-  }
-  .user {
-    color: #6f6;
-  }
-  .bot {
-    color: #0f0;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SK-1 Lokal AI v2.2</title>
+  <style>
+    :root { --bg:#0f0; --fg:#000; }
+    body {
+      background:#000;
+      color:#0f0;
+      font-family: monospace;
+      margin:0;
+      padding:1rem;
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+      gap:8px;
+    }
+    #panel {
+      display:flex;
+      gap:1rem;
+      flex-wrap:wrap;
+    }
+    #chat {
+      flex:1;
+      min-width:280px;
+      border:1px solid #0f0;
+      padding:1rem;
+      border-radius:6px;
+      background:#111;
+      max-height:60vh;
+      overflow:auto;
+    }
+    #controls {
+      flex:1;
+      min-width:280px;
+      border:1px solid #0f0;
+      padding:1rem;
+      border-radius:6px;
+      background:#111;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .message { margin:6px 0; }
+    .user { color:#6f6; }
+    .bot { color:#0f0; }
+    .warn { color: orange; }
+    .small { font-size:0.8rem; }
+    button {
+      background:#0f0;
+      color:#000;
+      border:none;
+      padding:8px 12px;
+      cursor:pointer;
+      border-radius:4px;
+      font-weight:bold;
+    }
+    input, textarea {
+      background:#000;
+      color:#0f0;
+      border:1px solid #0f0;
+      padding:8px;
+      border-radius:4px;
+      font-family: monospace;
+    }
+    #status { margin-top:4px; }
+  </style>
 </head>
 <body>
-<h1>SK-1 Lokal Süni İntellekt</h1>
-<div id="output" aria-live="polite" aria-atomic="true"></div>
-<div id="inputArea">
-  <input id="input" type="text" placeholder="Əmr və ya sualınızı yazın..." autocomplete="off" />
-  <button id="sendBtn">Göndər</button>
-  <button id="micBtn" title="Səsli danış">🎤</button>
-</div>
+  <h1>SK-1 Lokal Süni İntellekt (v2.2)</h1>
+  <div id="status" class="small"></div>
+  <div id="panel">
+    <div id="chat" aria-live="polite"></div>
+    <div id="controls">
+      <label for="input">Sual / Əmr:</label>
+      <input id="input" placeholder="Məs: Salam, necəsən?, hava?" autocomplete="off" />
+      <div style="display:flex; gap:6px;">
+        <button id="askBtn">Göndər</button>
+        <button id="backupBtn">Klonla (backup)</button>
+        <button id="showMemoryBtn">Yaddaş göstər</button>
+        <button id="clearBtn">Yaddaşı təmizlə</button>
+      </div>
+      <div class="small">
+        <div>Öyrənmək üçün yeni ifadə yaz: bilmirəmsə sən cavabı yazacaqsan.</div>
+        <div>Sinxron: başqa tablarda da dərhal yenilənir.</div>
+      </div>
+      <div id="integrity" class="small"></div>
+    </div>
+  </div>
 
-<script>
-(() => {
-  const output = document.getElementById('output');
-  const input = document.getElementById('input');
-  const sendBtn = document.getElementById('sendBtn');
-  const micBtn = document.getElementById('micBtn');
-
-  let memory = JSON.parse(localStorage.getItem('SK1_memory')) || [];
-
-  // Səsli çıxış funksiyası
-  function speak(text) {
-    if (!('speechSynthesis' in window)) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'az-AZ';
-    speechSynthesis.speak(utterance);
-  }
-
-  // Mesajı loga əlavə et
-  function logUser(text) {
-    const p = document.createElement('p');
-    p.classList.add('message', 'user');
-    p.textContent = "👤 " + text;
-    output.appendChild(p);
-    output.scrollTop = output.scrollHeight;
-  }
-
-  function logBot(text) {
-    const p = document.createElement('p');
-    p.classList.add('message', 'bot');
-    p.textContent = "🤖 " + text;
-    output.appendChild(p);
-    output.scrollTop = output.scrollHeight;
-    speak(text);
-  }
-
-  // Lokal AI cavabları (sadə qaydalarla)
-  function localAIResponse(input) {
-    input = input.toLowerCase();
-
-    if (input.includes('salam')) return "Salam, dostum! Mən SK-1əm.";
-    if (input.includes('klonla')) {
-      localStorage.setItem('SK1_clone_backup', document.documentElement.outerHTML);
-      return "Özümü klonladım və yaddaşa yazdım.";
+  <script>
+  (async () => {
+    // --- təhlükəsizlik: yalnız icazəli hostlarda işləsin (tənzimləyə bilərsən) ---
+    const ALLOWED = ["localhost", "127.0.0.1", location.hostname]; // öz hostname-ni buraya əlavə et əgər məhdudlaşdırmaq istəsən
+    if (!ALLOWED.includes(location.hostname)) {
+      document.body.innerHTML = "<h2 style='color:orange'>❌ Bu mühit tam yoxlanılmayıb — işləməyə davam etmirəm.</h2>";
+      return;
     }
-    if (input.includes('hava')) {
-      fetch('https://wttr.in/?format=3')
-        .then(r => r.text())
-        .then(t => logBot("Hava məlumatı: " + t))
-        .catch(() => logBot("Hava məlumatı alınmadı."));
-      return "Hava məlumatını gətirirəm...";
+
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const askBtn = document.getElementById("askBtn");
+    const backupBtn = document.getElementById("backupBtn");
+    const showMemoryBtn = document.getElementById("showMemoryBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const statusEl = document.getElementById("status");
+    const integrityEl = document.getElementById("integrity");
+
+    // Yaddaş strukturu: { "salam": "Salam, dostum!", ... }
+    let memory = JSON.parse(localStorage.getItem("sk1_memory") || "{}");
+
+    // BroadcastChannel sinxronizasiya
+    let bc;
+    if ("BroadcastChannel" in window) {
+      bc = new BroadcastChannel("sk1-sync");
+      bc.onmessage = e => {
+        if (e.data && e.data.type === "memory-update") {
+          memory = e.data.memory;
+          localStorage.setItem("sk1_memory", JSON.stringify(memory));
+          logBot("Sinxronizasiya: yaddaş yeniləndi başqa tabdan."); 
+          updateIntegrity();
+        }
+      };
     }
-    if (input.includes('xəbər')) {
-      fetch('https://api.api-ninjas.com/v1/news?limit=1', {
-        headers: { 'X-Api-Key': 'demo-key' }
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data[0]) logBot("Son xəbər: " + data[0].title);
-          else logBot("Xəbər tapılmadı.");
-        })
-        .catch(() => logBot("Xəbər servisinə qoşulmaq alınmadı."));
-      return "Son xəbərləri gətirirəm...";
+
+    // Helper: log
+    function logUser(txt) {
+      const p = document.createElement("div");
+      p.className = "message user";
+      p.textContent = "👤 " + txt;
+      chat.appendChild(p);
+      chat.scrollTop = chat.scrollHeight;
     }
-    if (input.includes('yadda saxla')) {
-      const item = input.split('yadda saxla')[1]?.trim();
-      if (item) {
-        memory.push(item);
-        localStorage.setItem('SK1_memory', JSON.stringify(memory));
-        return `Yadda saxladım: "${item}"`;
+    function logBot(txt) {
+      const p = document.createElement("div");
+      p.className = "message bot";
+      p.textContent = "🤖 " + txt;
+      chat.appendChild(p);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // Sadə lokal cavab sistemi
+    function getResponse(query) {
+      const key = query.toLowerCase().trim();
+      if (memory[key]) return memory[key];
+      // Önceden tanınmış açar yoxdursa müəyyən sadə qaydalar:
+      if (key.includes("necəsən")) return "Mən yaxşıyam, sən necəsən?";
+      if (key.includes("salam")) return "Salam, dostum! Nə öyrənək bugün?";
+      if (key.includes("adın nədir")) return "Məni SK-1 deyə çağır. Sən kimsən?";
+      if (key.includes("vaxt")) return `Hazırki vaxt: ${new Date().toLocaleTimeString()}`;
+      // tamamlayıcı yoxlama
+      return null;
+    }
+
+    // Öyrənmə: yeni input-cavab cütlüyü saxla
+    function learn(key, value) {
+      memory[key.toLowerCase().trim()] = value.trim();
+      persistMemory();
+      broadcastUpdate();
+      logBot(`🧠 Öyrəndim: "${key}" -> "${value}"`);
+    }
+
+    function persistMemory() {
+      localStorage.setItem("sk1_memory", JSON.stringify(memory));
+    }
+
+    function broadcastUpdate() {
+      if (bc) bc.postMessage({ type: "memory-update", memory });
+    }
+
+    // Özünü klonlama (backup)
+    function cloneSelf() {
+      const snapshot = document.documentElement.outerHTML;
+      localStorage.setItem("sk1_self_clone", btoa(unescape(encodeURIComponent(snapshot))));
+      logBot("🔁 Özünü klonladım (backup yaradıldı).");
+    }
+
+    // Tamlıq / integrity: yaddaş hash-ı
+    async function sha256(str) {
+      const buf = new TextEncoder().encode(str);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buf);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2,"0")).join("");
+    }
+
+    let lastKnownHash = "";
+    async function updateIntegrity() {
+      const current = JSON.stringify(memory);
+      const h = await sha256(current);
+      integrityEl.textContent = `Yaddaş checksum: ${h}${ lastKnownHash && h !== lastKnownHash ? " ⚠️ dəyişilib" : "" }`;
+      if (!lastKnownHash) lastKnownHash = h;
+    }
+
+    // İstifadəçi sual verdikdə işləyən
+    async function handle(inputText) {
+      logUser(inputText);
+      let response = getResponse(inputText);
+      if (response !== null) {
+        logBot(response);
+      } else {
+        // öyrənmək təklifi
+        const teach = prompt(`“${inputText}” üçün cavabım yoxdu. Mənə nə cavab verməliyəm?`);
+        if (teach && teach.trim()) {
+          learn(inputText, teach);
+          logBot(teach);
+        } else {
+          logBot("Heç nə öyrənilmədi.");
+        }
       }
-      return "Nəyi yadda saxlayım?";
+      await updateIntegrity();
     }
-    if (input.includes('nəyi yadda saxlamısan')) {
-      return memory.length ? `Yaddaşım: ${memory.join(' | ')}` : "Yaddaşım boşdur.";
+
+    // Eventlər
+    askBtn.addEventListener("click", () => {
+      const v = input.value.trim();
+      if (!v) return;
+      handle(v);
+      input.value = "";
+    });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") askBtn.click();
+    });
+    backupBtn.addEventListener("click", () => cloneSelf());
+    showMemoryBtn.addEventListener("click", () => {
+      logBot("📚 Yaddaş: " + JSON.stringify(memory));
+    });
+    clearBtn.addEventListener("click", () => {
+      if (confirm("Yaddaşı tam silmək istəyirsən?")) {
+        memory = {};
+        persistMemory();
+        broadcastUpdate();
+        logBot("🗑️ Yaddaş təmizləndi.");
+        updateIntegrity();
+      }
+    });
+
+    // Başlanğıc
+    function init() {
+      logBot("SK-1 hazırdır. Sual ver və ya mövzunu öyrət.");
+      updateIntegrity();
+      // avtomatik klonlama ehtiyat (ilk işə düşəndə)
+      if (!localStorage.getItem("sk1_self_clone")) cloneSelf();
+      statusEl.textContent = `Host: ${location.hostname} | Yaddaş girilənlər: ${Object.keys(memory).length}`;
+      setInterval(() => {
+        statusEl.textContent = `Host: ${location.hostname} | Xatırlanan: ${Object.keys(memory).length}`;
+      }, 3000);
     }
-    if (input.includes('əlvida') || input.includes('sən get')) {
-      return "👋 Sağ ol, yenə görüşərik!";
-    }
-    return "Başa düşmədim, zəhmət olmasa başqa cür deyə bilərsən?";
-  }
 
-  // Səs tanıma (Speech Recognition)
-  let recognition;
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = 'az-AZ';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    // Sync interval update status
+    init();
 
-    recognition.onresult = event => {
-      const speechResult = event.results[0][0].transcript;
-      input.value = speechResult;
-      sendBtn.click();
-    };
-    recognition.onerror = event => {
-      logBot("Səs tanıma xətası: " + event.error);
-    };
-  } else {
-    recognition = null;
-    micBtn.disabled = true;
-  }
-
-  // Mesajı işləyən funksiya
-  function handleMessage(text) {
-    logUser(text);
-    const response = localAIResponse(text);
-    logBot(response);
-  }
-
-  sendBtn.addEventListener('click', () => {
-    const text = input.value.trim();
-    if (!text) return;
-    handleMessage(text);
-    input.value = '';
-  });
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendBtn.click();
-  });
-
-  micBtn.addEventListener('click', () => {
-    if (!recognition) return;
-    recognition.start();
-    logBot("🎙️ Səsli danışmağa başlayın...");
-  });
-
-  // Başlanğıc
-  window.onload = () => {
-    logBot("SK-1 Lokal Süni İntellekt hazırdır! Salam deyin və ya sual verin.");
-  };
-})();
-</script>
+    // Periodik tamlıq yoxlaması (istəyə görə)
+    setInterval(() => updateIntegrity(), 5000);
+  })();
+  </script>
 </body>
 </html>
