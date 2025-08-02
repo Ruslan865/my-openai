@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SK-1 Lokal AI — Açar tələb olunmur</title>
+<style>
+  body {
+    background: #000;
+    color: #0f0;
+    font-family: monospace;
+    margin: 0; padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  #output {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid #0f0;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #111;
+    border-radius: 8px;
+  }
+  #inputArea {
+    display: flex;
+    gap: 0.5rem;
+  }
+  #input {
+    flex-grow: 1;
+    background: #000;
+    border: 1px solid #0f0;
+    color: #0f0;
+    font-family: monospace;
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    outline: none;
+  }
+  button {
+    background: #0f0;
+    border: none;
+    color: #000;
+    font-weight: bold;
+    padding: 0 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 1.1rem;
+  }
+  .message {
+    margin-bottom: 0.75rem;
+  }
+  .user {
+    color: #6f6;
+  }
+  .bot {
+    color: #0f0;
+  }
+</style>
+</head>
+<body>
+<h1>SK-1 Lokal Süni İntellekt</h1>
+<div id="output" aria-live="polite" aria-atomic="true"></div>
+<div id="inputArea">
+  <input id="input" type="text" placeholder="Əmr və ya sualınızı yazın..." autocomplete="off" />
+  <button id="sendBtn">Göndər</button>
+  <button id="micBtn" title="Səsli danış">🎤</button>
+</div>
+
+<script>
+(() => {
+  const output = document.getElementById('output');
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const micBtn = document.getElementById('micBtn');
+
+  let memory = JSON.parse(localStorage.getItem('SK1_memory')) || [];
+
+  // Səsli çıxış funksiyası
+  function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'az-AZ';
+    speechSynthesis.speak(utterance);
+  }
+
+  // Mesajı loga əlavə et
+  function logUser(text) {
+    const p = document.createElement('p');
+    p.classList.add('message', 'user');
+    p.textContent = "👤 " + text;
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function logBot(text) {
+    const p = document.createElement('p');
+    p.classList.add('message', 'bot');
+    p.textContent = "🤖 " + text;
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+    speak(text);
+  }
+
+  // Lokal AI cavabları (sadə qaydalarla)
+  function localAIResponse(input) {
+    input = input.toLowerCase();
+
+    if (input.includes('salam')) return "Salam, dostum! Mən SK-1əm.";
+    if (input.includes('klonla')) {
+      localStorage.setItem('SK1_clone_backup', document.documentElement.outerHTML);
+      return "Özümü klonladım və yaddaşa yazdım.";
+    }
+    if (input.includes('hava')) {
+      fetch('https://wttr.in/?format=3')
+        .then(r => r.text())
+        .then(t => logBot("Hava məlumatı: " + t))
+        .catch(() => logBot("Hava məlumatı alınmadı."));
+      return "Hava məlumatını gətirirəm...";
+    }
+    if (input.includes('xəbər')) {
+      fetch('https://api.api-ninjas.com/v1/news?limit=1', {
+        headers: { 'X-Api-Key': 'demo-key' }
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data[0]) logBot("Son xəbər: " + data[0].title);
+          else logBot("Xəbər tapılmadı.");
+        })
+        .catch(() => logBot("Xəbər servisinə qoşulmaq alınmadı."));
+      return "Son xəbərləri gətirirəm...";
+    }
+    if (input.includes('yadda saxla')) {
+      const item = input.split('yadda saxla')[1]?.trim();
+      if (item) {
+        memory.push(item);
+        localStorage.setItem('SK1_memory', JSON.stringify(memory));
+        return `Yadda saxladım: "${item}"`;
+      }
+      return "Nəyi yadda saxlayım?";
+    }
+    if (input.includes('nəyi yadda saxlamısan')) {
+      return memory.length ? `Yaddaşım: ${memory.join(' | ')}` : "Yaddaşım boşdur.";
+    }
+    if (input.includes('əlvida') || input.includes('sən get')) {
+      return "👋 Sağ ol, yenə görüşərik!";
+    }
+    return "Başa düşmədim, zəhmət olmasa başqa cür deyə bilərsən?";
+  }
+
+  // Səs tanıma (Speech Recognition)
+  let recognition;
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'az-AZ';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = event => {
+      const speechResult = event.results[0][0].transcript;
+      input.value = speechResult;
+      sendBtn.click();
+    };
+    recognition.onerror = event => {
+      logBot("Səs tanıma xətası: " + event.error);
+    };
+  } else {
+    recognition = null;
+    micBtn.disabled = true;
+  }
+
+  // Mesajı işləyən funksiya
+  function handleMessage(text) {
+    logUser(text);
+    const response = localAIResponse(text);
+    logBot(response);
+  }
+
+  sendBtn.addEventListener('click', () => {
+    const text = input.value.trim();
+    if (!text) return;
+    handleMessage(text);
+    input.value = '';
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+
+  micBtn.addEventListener('click', () => {
+    if (!recognition) return;
+    recognition.start();
+    logBot("🎙️ Səsli danışmağa başlayın...");
+  });
+
+  // Başlanğıc
+  window.onload = () => {
+    logBot("SK-1 Lokal Süni İntellekt hazırdır! Salam deyin və ya sual verin.");
+  };
+})();
+</script>
+</body>
+</html>
