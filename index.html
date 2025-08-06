@@ -1,67 +1,76 @@
 <!DOCTYPE html>
-<html lang="az">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SK-1 Super Kod</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super Kod</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
-    .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    input, button { padding: 10px; margin-top: 10px; width: 100%; }
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #f1f1f1;
+    }
+    textarea {
+      width: 80%;
+      height: 100px;
+      padding: 10px;
+      font-size: 16px;
+      resize: none;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #output {
+      margin-top: 30px;
+      width: 90%;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>🧠 SK-1 Super Kod</h2>
-    <p>Proqram istəyini yaz (məs: hava, chatbot, valyuta):</p>
-    <input type="text" id="requestInput" placeholder="Məsələn: hava">
-    <button onclick="handleRequest()">Təsdiqlə</button>
-    <div id="output" style="margin-top:20px;"></div>
-  </div>
+  <h1>🧠 Super Kod</h1>
+  <textarea id="command" placeholder="Nə yaratmağımı istəyirsən? Məsələn: hava proqramı, çat, təqvim..."></textarea>
+  <button onclick="generateCode()">Yarat</button>
+  <div id="output"></div>
 
   <script>
-    function handleRequest() {
-      const req = document.getElementById("requestInput").value.toLowerCase();
-      const out = document.getElementById("output");
-      out.innerHTML = '';
+    async function generateCode() {
+      const prompt = document.getElementById("command").value;
+      const output = document.getElementById("output");
+      output.innerText = "⏳ Yaradılır...";
 
-      if (req === "hava") {
-        out.innerHTML = `
-          <h3>🌤 Hava Proqramı</h3>
-          <p>Şəhəri daxil et:</p>
-          <input type="text" oninput="showWeather(this.value)">
-          <div id="weatherResult"></div>
-        `;
-      } else if (req === "chat" || req === "chatbot") {
-        out.innerHTML = `
-          <h3>💬 Chatbot</h3>
-          <p>Mesaj yaz:</p>
-          <input type="text" oninput="chatBot(this.value)">
-          <div id="chatResult"></div>
-        `;
-      } else if (req === "valyuta") {
-        out.innerHTML = `
-          <h3>💱 Valyuta Çevirici</h3>
-          <p>Məbləğ (USD):</p>
-          <input type="number" oninput="convertCurrency(this.value)">
-          <div id="currencyResult"></div>
-        `;
-      } else {
-        out.innerHTML = `<p>🚫 Bu proqram mövcud deyil: <b>${req}</b></p>`;
-      }
-    }
+      const response = await fetch("https://api.openai.com/v1/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_OPENAI_API_KEY"
+        },
+        body: JSON.stringify({
+          model: "text-davinci-003",
+          prompt: `HTML, CSS və JavaScript istifadə edərək bu tətbiqi yarat: ${prompt}`,
+          max_tokens: 1500,
+          temperature: 0.7
+        })
+      });
 
-    function showWeather(city) {
-      document.getElementById("weatherResult").innerText = `🌡 ${city} üçün hava: Günəşli, 28°C`;
-    }
-
-    function chatBot(msg) {
-      document.getElementById("chatResult").innerText = `🤖 Cavab: Səni eşidirəm – "${msg}"`;
-    }
-
-    function convertCurrency(val) {
-      const usd = parseFloat(val) || 0;
-      const azn = (usd * 1.7).toFixed(2);
-      document.getElementById("currencyResult").innerText = `💰 ${usd} USD = ${azn} AZN`;
+      const data = await response.json();
+      output.innerText = data.choices?.[0]?.text || "⚠️ Kod yaradıla bilmədi.";
     }
   </script>
 </body>
