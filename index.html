@@ -1,66 +1,89 @@
-
 <!DOCTYPE html>
 <html lang="az">
 <head>
-  <meta charset="UTF-8">
-  <title>🧠 Super Kod</title>
+  <meta charset="UTF-8" />
+  <title>Super Kod - Dinamik Proqram Qurucu</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #101010;
-      color: #f0f0f0;
-      text-align: center;
-      padding: 40px;
-    }
-    #output {
-      margin-top: 30px;
-      white-space: pre-wrap;
-      font-size: 18px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 10px;
-    }
-    .fade-in {
-      animation: fadeIn 0.6s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+    input, button { font-size: 16px; padding: 10px; }
+    #app { margin-top: 30px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+    table { border-collapse: collapse; width: 100%; max-width: 400px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #4CAF50; color: white; }
+    .today { background: #ffeb3b; }
   </style>
 </head>
 <body>
-  <h1>🧠 Super Kod sizi eşidir...</h1>
-  <p>Zəhmət olmasa seçim et və ya proqramın adını yaz:</p>
-  <p><strong>1️⃣ - API ilə (Süni Zəka əsaslı)</strong><br>2️⃣ - Sadə Proqram (Offline)</p>
-  
-  <input id="userInput" placeholder="Məsələn: hava durumu, kalkulyator və s.">
-  <button onclick="processInput()">Təsdiqlə</button>
 
-  <div id="output" class="fade-in"></div>
+  <h1>Super Kod - Dinamik Proqram Qurucu</h1>
+  <input id="cmd" type="text" placeholder="Əmr verin: təqvim qur, hava yaz, xəbər göstər..." style="width: 60%;" />
+  <button onclick="run()">İcra et</button>
+
+  <div id="app"></div>
 
   <script>
-    function processInput() {
-      const input = document.getElementById("userInput").value.toLowerCase().trim();
-      const output = document.getElementById("output");
-
-      if (!input) {
-        output.innerText = "Zəhmət olmasa seçim et və ya proqram adı yaz.";
-        return;
-      }
-
-      if (input === "1") {
-        output.innerText = "✅ API əsaslı proqram hazırlanır...\nMisal: ChatGPT, hava durumu, tərcüməçi...\n\nKod özünü uyğunlaşdırır...";
-        // Burada sonra dinamik olaraq script və kod hissələri əlavə ediləcək
-      } else if (input === "2") {
-        output.innerText = "✅ Sadə offline proqram hazırlanır...\nMisal: təqvim, kalkulyator, qeydlər...\n\nKod özünü uyğunlaşdırır...";
-      } else {
-        output.innerText = `✅ Proqram seçildi: "${input}"\nHazırlıq başlayır...\n\nKod özünü uyğunlaşdırır...`;
-        // Burada sonra AI və ya yerli proqram modulu yaradıla bilər
+    function run() {
+      const command = document.getElementById("cmd").value.toLowerCase();
+      const app = document.getElementById("app");
+      app.innerHTML = generateProgramCode(command);
+      // Əgər təqvimdirsə, əlavə JS kodu işə sal
+      if (command.includes("təqvim")) {
+        createCalendar();
       }
     }
+
+    function generateProgramCode(command) {
+      if (command.includes("təqvim")) {
+        return `
+          <h2>Sadə Təqvim</h2>
+          <table id="calendar"></table>
+        `;
+      } else if (command.includes("hava")) {
+        return `
+          <h2>Hava Məlumatı (Statik)</h2>
+          <p>📍 Bakı</p>
+          <p>☀️ Temperatur: 28°C</p>
+          <p>💨 Külək: 12 km/s</p>
+          <p>💧 Rütubət: 65%</p>
+        `;
+      } else if (command.includes("xəbər")) {
+        return `
+          <h2>Son Xəbərlər</h2>
+          <ul>
+            <li>AI sistemi Azərbaycanda inkişaf edir.</li>
+            <li>Super Kod layihəsi böyük uğur qazanır.</li>
+            <li>Yeni proqramlar tezliklə istifadəyə veriləcək.</li>
+          </ul>
+        `;
+      } else {
+        return `<p>Əmr tanınmadı. Məsələn: "təqvim qur", "hava yaz", "xəbər göstər".</p>`;
+      }
+    }
+
+    function createCalendar() {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const days = ["B.", "B.e.", "Ç.a.", "Ç.", "C.a.", "C.", "Ş."];
+
+      let html = "<tr>";
+      for (let d of days) html += `<th>${d}</th>`;
+      html += "</tr><tr>";
+
+      for (let i = 0; i < firstDay; i++) html += "<td></td>";
+
+      for (let date = 1; date <= lastDate; date++) {
+        const isToday = date === now.getDate();
+        html += `<td class="${isToday ? "today" : ""}">${date}</td>`;
+        if ((firstDay + date) % 7 === 0) html += "</tr><tr>";
+      }
+
+      html += "</tr>";
+      document.getElementById("calendar").innerHTML = html;
+    }
   </script>
+
 </body>
 </html>
