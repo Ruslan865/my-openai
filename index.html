@@ -1,92 +1,86 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-  <meta charset="UTF-8" />
-  <title>Super Kod - Ani Proqram Çevirmə</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-    input, button { font-size: 16px; padding: 10px; margin-right: 10px; }
-    #app { margin-top: 30px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1);}
-    table { border-collapse: collapse; width: 100%; max-width: 400px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #4CAF50; color: white; }
-    .today { background: #ffeb3b; }
-  </style>
+<meta charset="UTF-8" />
+<title>Super Kod - Ani Proqram Çevirmə</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+  input, button { font-size: 16px; padding: 10px; margin-right: 10px; }
+  #app { margin-top: 30px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1);}
+  table { border-collapse: collapse; width: 100%; max-width: 400px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background: #4CAF50; color: white; }
+  .today { background: #ffeb3b; }
+</style>
 </head>
 <body>
 
-  <h1>Super Kod - Ani Proqram Çevirmə</h1>
-  <input id="cmd" type="text" placeholder="Əmr verin: təqvim qur, hava yaz, xəbər göstər..." style="width: 60%;" />
-  <button onclick="run()">İcra et</button>
+<h1>Super Kod - Ani Proqram Çevirmə</h1>
+<input id="cmd" type="text" placeholder="Əmr verin: təqvim qur, hava yaz, xəbər göstər..." style="width: 60%;" />
+<button onclick="run()">İcra et</button>
 
-  <div id="app"></div>
+<div id="app"></div>
 
-  <script>
-    function run() {
-      const command = document.getElementById("cmd").value.toLowerCase();
-      const app = document.getElementById("app");
-      
-      // Dərhal proqramı göstər
-      app.innerHTML = generateProgramCode(command);
+<script>
+function run() {
+  const command = document.getElementById("cmd").value.toLowerCase();
+  const app = document.getElementById("app");
 
-      // Təqvim funksiyasını işə sal
-      if (command.includes("təqvim")) {
-        createCalendar();
-      }
-    }
+  // Əvvəlcə app'ı boşalt
+  app.innerHTML = "";
 
-    function generateProgramCode(command) {
-      if (command.includes("təqvim")) {
-        return `
-          <h2>Sadə Təqvim</h2>
-          <table id="calendar"></table>
-        `;
-      } else if (command.includes("hava")) {
-        return `
-          <h2>Hava Məlumatı (Statik)</h2>
-          <p>📍 Bakı</p>
-          <p>☀️ Temperatur: 28°C</p>
-          <p>💨 Külək: 12 km/s</p>
-          <p>💧 Rütubət: 65%</p>
-        `;
-      } else if (command.includes("xəbər")) {
-        return `
-          <h2>Son Xəbərlər</h2>
-          <ul>
-            <li>AI sistemi Azərbaycanda inkişaf edir.</li>
-            <li>Super Kod layihəsi böyük uğur qazanır.</li>
-            <li>Yeni proqramlar tezliklə istifadəyə veriləcək.</li>
-          </ul>
-        `;
-      } else {
-        return `<p>Əmr tanınmadı. Məsələn: "təqvim qur", "hava yaz", "xəbər göstər".</p>`;
-      }
-    }
+  if (command.includes("təqvim")) {
+    app.innerHTML = `
+      <h2>Sadə Təqvim</h2>
+      <table id="calendar"></table>
+    `;
+    createCalendar();
+  } else if (command.includes("hava")) {
+    app.innerHTML = `
+      <h2>Hava Məlumatı (Statik)</h2>
+      <p>📍 Bakı</p>
+      <p>☀️ Temperatur: 28°C</p>
+      <p>💨 Külək: 12 km/s</p>
+      <p>💧 Rütubət: 65%</p>
+    `;
+  } else if (command.includes("xəbər")) {
+    app.innerHTML = `
+      <h2>Son Xəbərlər</h2>
+      <ul>
+        <li>AI sistemi Azərbaycanda inkişaf edir.</li>
+        <li>Super Kod layihəsi böyük uğur qazanır.</li>
+        <li>Yeni proqramlar tezliklə istifadəyə veriləcək.</li>
+      </ul>
+    `;
+  } else {
+    app.innerHTML = `<p>Əmr tanınmadı. Məsələn: "təqvim qur", "hava yaz", "xəbər göstər".</p>`;
+  }
+}
 
-    function createCalendar() {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-      const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
-      const days = ["B.", "B.e.", "Ç.a.", "Ç.", "C.a.", "C.", "Ş."];
+function createCalendar() {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const days = ["B.", "B.e.", "Ç.a.", "Ç.", "C.a.", "C.", "Ş."];
 
-      let html = "<tr>";
-      for (let d of days) html += `<th>${d}</th>`;
-      html += "</tr><tr>";
+  let html = "<tr>";
+  for (let d of days) html += `<th>${d}</th>`;
+  html += "</tr><tr>";
 
-      for (let i = 0; i < firstDay; i++) html += "<td></td>";
+  for (let i = 0; i < firstDay; i++) html += "<td></td>";
 
-      for (let date = 1; date <= lastDate; date++) {
-        const isToday = date === now.getDate();
-        html += `<td class="${isToday ? "today" : ""}">${date}</td>`;
-        if ((firstDay + date) % 7 === 0) html += "</tr><tr>";
-      }
+  for (let date = 1; date <= lastDate; date++) {
+    const isToday = date === now.getDate();
+    html += `<td class="${isToday ? "today" : ""}">${date}</td>`;
+    if ((firstDay + date) % 7 === 0) html += "</tr><tr>";
+  }
 
-      html += "</tr>";
-      document.getElementById("calendar").innerHTML = html;
-    }
-  </script>
+  html += "</tr>";
+  document.getElementById("calendar").innerHTML = html;
+}
+</script>
 
 </body>
 </html>
