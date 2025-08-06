@@ -2,11 +2,11 @@
 <html lang="az">
 <head>
   <meta charset="UTF-8" />
-  <title>Super Kod - Dinamik Proqram Qurucu</title>
+  <title>Super Kod - Ani Proqram Çevirmə</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
-    input, button { font-size: 16px; padding: 10px; }
-    #app { margin-top: 30px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    input, button { font-size: 16px; padding: 10px; margin-right: 10px; }
+    #app { margin-top: 30px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1);}
     table { border-collapse: collapse; width: 100%; max-width: 400px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #4CAF50; color: white; }
@@ -15,7 +15,7 @@
 </head>
 <body>
 
-  <h1>Super Kod - Dinamik Proqram Qurucu</h1>
+  <h1>Super Kod - Ani Proqram Çevirmə</h1>
   <input id="cmd" type="text" placeholder="Əmr verin: təqvim qur, hava yaz, xəbər göstər..." style="width: 60%;" />
   <button onclick="run()">İcra et</button>
 
@@ -25,8 +25,11 @@
     function run() {
       const command = document.getElementById("cmd").value.toLowerCase();
       const app = document.getElementById("app");
+      
+      // Dərhal proqramı göstər
       app.innerHTML = generateProgramCode(command);
-      // Əgər təqvimdirsə, əlavə JS kodu işə sal
+
+      // Təqvim funksiyasını işə sal
       if (command.includes("təqvim")) {
         createCalendar();
       }
