@@ -3,239 +3,218 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SK-1 — Single file super-code</title>
+<title>SK-1 — Single‑File Super Code (v2)</title>
 <style>
-  :root{--bg:#000;--panel:#0f0;--panel-bg:#111}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--panel);font-family:ui-monospace,monospace}
-  .wrap{max-width:950px;margin:18px auto;padding:18px}
+  :root{--bg:#000;--fg:#0f0;--mut:#8f8;--panel:#111;--accent:#0f0}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:ui-monospace,monospace}
+  .wrap{max-width:980px;margin:20px auto;padding:16px}
   h1{margin:0 0 8px;font-size:20px}
-  #banner{font-size:13px;opacity:0.9;margin-bottom:12px}
-  #output{background:var(--panel-bg);border:1px solid var(--panel);padding:12px;height:360px;overflow:auto;white-space:pre-wrap}
-  #cmd{width:100%;padding:10px;margin-top:10px;background:transparent;border:1px solid var(--panel);color:var(--panel);}
-  .controls{display:flex;gap:8px;margin-top:10px}
-  button{background:var(--panel);color:#000;border:none;padding:8px 10px;font-weight:700;cursor:pointer}
-  small{display:block;margin-top:8px;color:#8f8}
-  .status{color:#8f8;margin-top:8px;font-size:13px}
+  #banner{font-size:13px;opacity:.9;margin-bottom:12px}
+  #output{background:var(--panel);border:1px solid var(--accent);padding:12px;height:300px;overflow:auto;white-space:pre-wrap}
+  #cmd{width:100%;padding:10px;margin-top:10px;background:transparent;border:1px solid var(--accent);color:var(--fg)}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  button{background:var(--accent);color:#000;border:none;padding:8px 10px;font-weight:700;cursor:pointer;border-radius:6px}
+  .status{color:var(--mut);margin-top:8px;font-size:13px}
+  .hint{color:var(--mut);font-size:12px;margin-top:6px}
+  #apiSection{display:none;margin-top:8px}
+  #apiSection input{width:100%;padding:10px;background:transparent;border:1px solid var(--accent);color:var(--fg)}
+  .sep{height:1px;background:#0f0;opacity:.3;margin:10px 0}
+  iframe.app{width:100%;height:520px;border:1px solid var(--accent);margin-top:10px}
+  .pill{display:inline-block;border:1px solid var(--accent);padding:2px 8px;border-radius:999px;margin-right:6px;font-size:12px;color:#000;background:#0f0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>SK-1 — Super single-file agent</h1>
-  <div id="banner">Boş beyin rejimi — əmri yazın (heç bir hazır əməliyyat daxil deyil). API açarı istəyə bağlıdır; əgər yoxdursa scraper rejimi işləyəcək.</div>
+  <h1>SK-1 — Single‑File Super Code <span class="pill">v2</span></h1>
+  <div id="banner">Boş beyin — əmri yaz. SK‑1 cihaz profilini oxuyur, lisenziyanı yoxlayır və <b>əmrə uyğun tətbiqə çevrilir</b>. API açarı istəyə bağlıdır; yoxdursa CORS‑dost ümumi mənbələrdən və ya scraper‑linkdən istifadə edəcək.</div>
 
   <div id="output">Yüklənir...\n</div>
-  <input id="cmd" placeholder="Əmr ver: misal 'riyaziyyat müəllimi ol'" autocomplete="off" />
+  <input id="cmd" placeholder="Əmr ver: məsələn ‘təqvim ol’, ‘hava durumunu göstər’, ‘kamera aç’, ‘kalkulyator’, ‘notepad’, ‘timer 10s’, ‘riyaziyyat müəllimi ol’…" autocomplete="off" />
 
   <div class="controls">
-    <button id="reset">Sıfırla</button>
-    <button id="showProfile">Cihaz profilini göstər</button>
     <button id="storeKey">API açarı saxla</button>
+    <button id="showProfile">Cihaz profilini göstər</button>
+    <button id="reset">Sıfırla (boş beyin)</button>
+    <button id="lockToggle" title="Çevriləndən sonra geri dönüşü bağla">Çevrildikdən sonra kilidlə: OFF</button>
   </div>
 
-  <div id="apiSection" style="margin-top:10px;display:none">
-    <input id="apiKey" placeholder="OpenAI API açarı (istəyə bağlı)" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:1px solid var(--panel);color:var(--panel)" />
+  <div id="apiSection">
+    <input id="apiKey" placeholder="OpenAI API açarı (istəyə bağlı)" />
   </div>
 
   <div class="status" id="status">Status: başlanğıc</div>
-  <small>Qeyd: Bu prototipdə server-side lisenziya yoxlaması və modul imzalama stub-ları var — istehsal üçün server komponenti tələb olunur.</small>
+  <div class="hint">Qeyd: Bu prototipdə lisenziya və imza yoxlaması <i>stub</i> kimi var. Scraper serveri üçün GitHub Pages kifayət deyil — CORS‑dost API‑lər (Open‑Meteo, Wikipedia və s.) istifadə olunur.</div>
+  <div class="sep"></div>
 </div>
 
 <script>
-// SK-1 Single-file core prototype
-// - device profiling
-// - local license check (stub) + server heartbeat hook
-// - API optional (OpenAI) or scraper fallback
-// - dynamic module loader (Blob -> sandboxed iframe)
-// - virtual module cache (localStorage)
+// ==========================
+// SK‑1 v2 — Single‑File Core
+// ==========================
+// Xüsusiyyətlər:
+// • Cihaz profilini oxuyur
+// • Lokal demo lisenziya (stub) + gələcək server heartbeat hook
+// • Əmr → modul seçimi/generator → sandbox iframe‑də tətbiq
+// • API açarı varsa OpenAI; yoxdursa CORS‑dost açıq API-lər; olmazsa scraper-link
+// • "Çevrildikdən sonra kilid" — istifadəçinin tələbi ilə geri dönüşü bağlayır (reset tələb olunur)
 
-(async function(){
+(function(){
   const out = document.getElementById('output');
   const inp = document.getElementById('cmd');
+  const status = document.getElementById('status');
   const resetBtn = document.getElementById('reset');
   const profileBtn = document.getElementById('showProfile');
+  const storeKeyBtn = document.getElementById('storeKey');
   const apiSection = document.getElementById('apiSection');
   const apiKeyInput = document.getElementById('apiKey');
-  const storeKeyBtn = document.getElementById('storeKey');
-  const status = document.getElementById('status');
+  const lockBtn = document.getElementById('lockToggle');
 
-  // --- Config
-  const LICENSE_CHECK_URL = '/api/license/verify'; // optional backend
-  const MODULE_REGISTRY = '/api/modules?query=';   // optional backend
-  const AI_PROXY = '/api/generate'; // optional backend to proxy OpenAI when user doesn't want to expose key
+  let lockAfterTransform = false; // one‑way mode (istəyə görə)
 
-  // --- utility
-  function log(...args){ out.textContent += '\n' + args.join(' '); out.scrollTop = out.scrollHeight; }
-  function now(){ return new Date().toISOString(); }
+  // ---------- Utilities ----------
+  const log = (...a)=>{ out.textContent += "\n"+a.join(' '); out.scrollTop = out.scrollHeight; };
+  const now = ()=> new Date().toISOString();
 
-  // --- Device profiling
+  // ---------- Device Profile ----------
   function getDeviceProfile(){
     const ram = navigator.deviceMemory || null;
     const cores = navigator.hardwareConcurrency || null;
     const ua = navigator.userAgent;
-    const webgl = (()=>{ try{ const c=document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')));}catch(e){return false}})();
+    const hasWebGL = (()=>{ try{ const c=document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')));}catch(e){return false}})();
     const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    return {ram,cores,ua,webgl,hasCamera};
+    const prof = {ram,cores,ua,hasWebGL,hasCamera};
+    try{ localStorage.setItem('sk1_device_profile', JSON.stringify(prof)); }catch(e){}
+    return prof;
   }
 
-  // --- License: simple local stub (production must use server verification & signed tokens)
-  const LICENSE_KEY_STORAGE = 'sk1_license_token';
+  // ---------- License (demo stub) ----------
+  const LIC_KEY = 'sk1_license_token';
   function localLicenseValid(){
-    try{
-      const tok = localStorage.getItem(LICENSE_KEY_STORAGE);
-      if(!tok) return false;
-      const data = JSON.parse(atob(tok));
-      // expect {owner,exp} with exp timestamp
-      if(data.exp && Date.now() < data.exp) return true; else return false;
-    }catch(e){return false}
+    try{ const tok = localStorage.getItem(LIC_KEY); if(!tok) return false; const d=JSON.parse(atob(tok)); return d.exp && Date.now()<d.exp; }catch(e){ return false; }
   }
-  function setLocalLicense(owner,days=365){
-    const exp = Date.now() + days*24*60*60*1000;
-    const payload = {owner,exp};
-    localStorage.setItem(LICENSE_KEY_STORAGE, btoa(JSON.stringify(payload)));
+  function setLocalLicense(owner, days=30){
+    const exp = Date.now()+days*24*60*60*1000; const payload={owner,exp};
+    try{ localStorage.setItem(LIC_KEY, btoa(JSON.stringify(payload))); }catch(e){}
   }
 
-  // --- Public key signature verify stub (placeholder). In production, server signs module packages with ECDSA.
-  async function verifySignature(moduleBytes, signatureBase64, publicKeyJwk){
-    // This is a stub showing where WebCrypto verify would happen. Implement server signing and proper verification.
-    // Returning true for prototype.
-    return true;
-  }
+  // ---------- API Key Helpers ----------
+  function getApiKey(){ return localStorage.getItem('sk1_api_key') || ''; }
+  function setApiKey(k){ try{ localStorage.setItem('sk1_api_key',k); }catch(e){} }
 
-  // --- Module loader: fetch module from registry or build simple module by AI/scraper response
-  async function fetchModuleForCommand(cmd, profile){
-    log(now(),'module lookup ->', cmd);
-    // Try server registry first
-    try{
-      const url = MODULE_REGISTRY + encodeURIComponent(cmd);
-      const r = await fetch(url, {method:'GET'});
-      if(r.ok){
-        const j = await r.json();
-        // expected {name,code,signature,manifest}
-        if(j && j.code) return j; // trust
-      }
-    }catch(e){ /* ignore network */ }
-
-    // fallback: ask AI proxy or prepare a tiny local runtime
-    if(getApiKey()){
-      // ask AI (either via user key directly or server proxy)
-      const aiResp = await runAIGenerate(cmd);
-      // Expect the AI to return a small HTML+JS app; we will wrap it as module.code
-      return {name:'ai-generated', code: aiResp, signature: null, manifest:{}};
-    } else {
-      // scraper fallback: return instructions + search URL
-      const searchUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(cmd);
-      const code = `<!-- SCRAPER FALLBACK -->\n<h3>Scraper fallback</h3><p>Open this search: <a href="${searchUrl}" target="_blank">${searchUrl}</a></p>`;
-      return {name:'scraper-fallback', code, signature:null, manifest:{}};
-    }
-  }
-
-  // --- create sandboxed iframe and inject module code safely
-  function runModuleCode(module){
-    log(now(),'installing module',module.name);
-
-    // remove previous runtime iframe if any
-    const existing = document.getElementById('sk1-module-iframe');
-    if(existing) existing.remove();
-
-    const iframe = document.createElement('iframe');
-    iframe.id = 'sk1-module-iframe';
-    // sandbox: allow-scripts but restrict many things; in production refine permissions
-    iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
-    iframe.style.width = '100%'; iframe.style.height = '420px';
-    document.querySelector('.wrap').appendChild(iframe);
-
-    // create blob with module HTML
-    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1" /></head><body style="background:#000;color:#0f0;font-family:monospace;padding:12px">${module.code}
-    </body></html>`;
-    const blob = new Blob([html], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    iframe.src = url;
-    log(now(),'module running in sandbox iframe.');
-  }
-
-  // --- AI generation helpers
-  function getApiKey(){
-    return localStorage.getItem('sk1_api_key') || '';
-  }
-  async function runAIGenerate(cmd){
-    const userKey = getApiKey();
-    const system = `Sən proqram yaradansan. İstifadəçi əmri: ${cmd}. Nəticə minimal, işlək HTML+JS kodu olmalıdır (tam page).`; 
-
-    // If user provided their own key, call OpenAI directly from browser (CORS may block). Prefer server proxy in production.
-    if(userKey){
+  // ---------- AI Call (direct or proxy) ----------
+  async function aiGenerateHTML(cmd){
+    const key = getApiKey();
+    const system = `Sən minimal işlək tətbiqlər yaradan generator san. İstifadəçi əmri: ${cmd}. Çıxış sadə, tam HTML+JS olsun (inline style).`;
+    if(key){
       try{
         const r = await fetch('https://api.openai.com/v1/chat/completions',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+userKey},
-          body: JSON.stringify({model:'gpt-4o-mini', messages:[{role:'system',content:system},{role:'user',content:cmd}], max_tokens:800})
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+          body: JSON.stringify({model:'gpt-4o-mini', messages:[{role:'system',content:system},{role:'user',content:cmd}], max_tokens:900, temperature:0.4})
         });
         const j = await r.json();
-        if(j.choices && j.choices[0] && j.choices[0].message) return j.choices[0].message.content;
-      }catch(e){ log('AI direct error',e.message); }
+        if(j.choices && j.choices[0] && j.choices[0].message){ return j.choices[0].message.content; }
+      }catch(e){ log('AI (direct) xəta:', e.message); }
     }
-
-    // try server proxy
+    // proxy nümunəsi (backend lazım olacaq)
     try{
-      const r = await fetch(AI_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:cmd,system})});
-      if(r.ok){ const j = await r.json(); return j.code || j.text || (j.result && j.result[0]) || '<p>AI proxy returned no code</p>'; }
-    }catch(e){ log('AI proxy failed',e.message); }
-
-    return '<p>AI unavailable — cannot generate module automatically.</p>';
+      const r = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt:cmd, system})});
+      if(r.ok){ const j = await r.json(); return j.code || j.html || j.text || '<p>Proxy cavab vermədi</p>'; }
+    }catch(e){ log('AI proxy xəta:', e.message); }
+    return null;
   }
 
-  // --- top-level command handler
+  // ---------- Built‑in Mini Modules (CORS‑friendly) ----------
+  const Modules = {
+    calendar: ()=> `\n<h2>Təqvim</h2>\n<div id="cal"></div>\n<script>\n(function(){\n const d=new Date(); const y=d.getFullYear(); const m=d.getMonth();\n function build(y,m){\n  const first=new Date(y,m,1); const last=new Date(y,m+1,0);\n  let html='<table border=1 cellpadding=6><tr>';\n  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];\n  html+=days.map(x=>'<'+'th>'+x+'</th>').join('')+'</tr><tr>';\n  let pad=(first.getDay()+6)%7; for(let i=0;i<pad;i++) html+='<td></td>';\n  for(let day=1; day<=last.getDate(); day++){\n    html+='<td>'+day+'</td>'; pad++; if(pad%7===0) html+='</tr><tr>';\n  }\n  html+='</tr></table>';\n  document.getElementById('cal').innerHTML=html;\n }\n build(y,m);\n})();\n<\/script>`,
+
+    weather: ()=> `\n<h2>Hava Durumu (Open‑Meteo)</h2>\n<div>Şəhər: <input id="city" placeholder="Baku"/> <button id="go">Bax</button></div>\n<pre id="res">Gözlənilir…</pre>\n<script>\n(async function(){\n const out=document.getElementById('res');\n async function fetchCity(q){\n  const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q));\n  const j=await r.json(); if(!j.results||!j.results[0]){out.textContent='Tapılmadı';return}\n  const {latitude,longitude} = j.results[0];\n  const w=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+latitude+'&longitude='+longitude+'&current=temperature_2m,relative_humidity_2m,weather_code');\n  const wj=await w.json(); out.textContent=JSON.stringify(wj.current, null, 2);\n }\n document.getElementById('go').onclick=()=>fetchCity(document.getElementById('city').value||'Baku');\n})();\n<\/script>`,
+
+    camera: ()=> `\n<h2>Kamera</h2>\n<video id="v" autoplay playsinline style="width:100%;max-height:420px;border:1px solid #0f0"></video>\n<script>\n(async function(){\n try{ const s=await navigator.mediaDevices.getUserMedia({video:true}); document.getElementById('v').srcObject=s; }catch(e){ document.body.innerHTML+='<p>İcazə verilmədi: '+e.message+'</p>'; }\n})();\n<\/script>`,
+
+    calc: ()=> `\n<h2>Kalkulyator</h2>\n<input id="expr" placeholder="(2+2)*5"/> <button id="go">Hesabla</button>\n<pre id="res"></pre>\n<script>\n document.getElementById('go').onclick=function(){\n  try{ const val=Function('return '+document.getElementById('expr').value)();\n   document.getElementById('res').textContent=String(val);\n  }catch(e){ document.getElementById('res').textContent='Xəta: '+e.message }\n };\n<\/script>`,
+
+    notes: ()=> `\n<h2>Notepad</h2>\n<textarea id="t" style="width:100%;height:360px;background:#000;color:#0f0;border:1px solid #0f0"></textarea>\n<script>\n const k='sk1_notes'; const el=document.getElementById('t');\n el.value=localStorage.getItem(k)||'';\n el.addEventListener('input',()=>localStorage.setItem(k,el.value));\n<\/script>`,
+
+    timer: (arg)=> `\n<h2>Timer</h2>\n<div id="left"></div>\n<script>\n (function(){\n  let ms=${arg||'10000'}; const el=document.getElementById('left');\n  const i=setInterval(()=>{ ms-=1000; el.textContent=(ms/1000)+' saniyə'; if(ms<=0){ clearInterval(i); el.textContent='Bitdi'; } },1000);\n })();\n<\/script>`,
+
+    wiki: (q)=> `\n<h2>Wikipedia</h2>\n<div>Nəticə: <span id="term"></span></div>\n<pre id="res">Gözlənilir…</pre>\n<script>\n(async function(){\n const term=${JSON.stringify(q||'Baku')}; document.getElementById('term').textContent=term;\n const r=await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(term));\n const j=await r.json();\n document.getElementById('res').textContent=(j.extract||'Tapılmadı');\n})();\n<\/script>`
+  };
+
+  // ---------- Sandbox Runner ----------
+  function runInIframe(html){
+    // remove existing
+    const old=document.querySelector('iframe.app'); if(old) old.remove();
+    const iframe=document.createElement('iframe'); iframe.className='app'; iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
+    document.querySelector('.wrap').appendChild(iframe);
+    const doc = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /></head><body style=\"background:#000;color:#0f0;font-family:monospace;padding:12px\">${html}</body></html>`;
+    const blob=new Blob([doc],{type:'text/html'}); iframe.src=URL.createObjectURL(blob);
+  }
+
+  // ---------- Command Router ----------
   async function handleCommand(cmd){
-    status.textContent = 'Status: processing';
-    const profile = getDeviceProfile();
-    log(now(),'Command:',cmd);
-    // license quick check
-    if(!localLicenseValid()){
-      log('Local license missing — asking to activate demo license.');
-      setLocalLicense('demo-user',30); // set 30 days demo for testing
-      log('Demo license installed (30 days).');
+    status.textContent='Status: emal edilir…';
+    log(now(),'Əmr:',cmd);
+
+    // ensure demo license
+    if(!localLicenseValid()){ setLocalLicense('demo-user',30); log('Demo lisenziya aktivləşdi (30 gün)'); }
+
+    const p = getDeviceProfile(); log('Cihaz profili:', JSON.stringify(p));
+
+    // parse commands (simple intent)
+    const c = cmd.toLowerCase();
+    let html = null;
+
+    // timers: "timer 10s" or "timer 2m"
+    if(/^timer\s+\d+(s|m)$/.test(c)){
+      const n = parseInt(c.match(/\d+/)[0],10); const unit = c.includes('m')?60000:1000; html = Modules.timer(String(n*unit));
+    }
+    else if(c.includes('təqvim') || c.includes('calendar')){ html = Modules.calendar(); }
+    else if(c.includes('hava') || c.includes('weather')){ html = Modules.weather(); }
+    else if(c.includes('kamera') || c.includes('camera')){ html = Modules.camera(); }
+    else if(c.includes('kalkulyator') || c.includes('calc')){ html = Modules.calc(); }
+    else if(c.includes('not') || c.includes('note')){ html = Modules.notes(); }
+    else if(c.startsWith('wiki ') || c.startsWith('wikipedia ')){
+      const q = c.replace(/^wiki\s+|^wikipedia\s+/,'').trim(); html = Modules.wiki(q||'Baku');
     }
 
-    const module = await fetchModuleForCommand(cmd,profile);
-
-    // verify signature if present
-    if(module.signature){
-      const ok = await verifySignature(module.code, module.signature, /*publicKey*/null);
-      if(!ok){ log('Signature invalid — aborting.'); status.textContent='Status: signature failed'; return; }
+    if(!html){
+      // Try AI generator to build a tiny app for the command
+      const ai = await aiGenerateHTML(cmd);
+      if(ai){ html = ai; }
+      else {
+        const searchUrl = 'https://duckduckgo.com/?q='+encodeURIComponent(cmd);
+        html = `<!-- scraper fallback -->\n<h3>Scraper link</h3><p>CORS məhdudiyyətlərinə görə brauzerdən birbaşa scraping mümkün deyil. Axtarış linki: <a href="${searchUrl}" target="_blank">${searchUrl}</a></p>`;
+      }
     }
 
-    // cache module code locally (simple localStorage cache)
-    try{ localStorage.setItem('sk1_cached_module_'+module.name, module.code || module); }catch(e){ log('Cache error',e.message); }
+    runInIframe(html);
+    status.textContent='Status: çevrildi — tətbiq işləyir';
 
-    // run
-    runModuleCode(module);
-    status.textContent = 'Status: module running — transformed into program';
+    if(lockAfterTransform){
+      inp.disabled = true; inp.placeholder = 'Kilid aktivdir — reset lazımdır';
+    }
   }
 
-  // --- UI wiring
-  inp.addEventListener('keydown', async (e)=>{
-    if(e.key==='Enter'){
-      const cmd = inp.value.trim(); if(!cmd) return; inp.value=''; await handleCommand(cmd);
-    }
-  });
-
+  // ---------- UI bindings ----------
+  profileBtn.addEventListener('click', ()=>{ log('Profil:', JSON.stringify(getDeviceProfile())); });
   resetBtn.addEventListener('click', ()=>{
-    localStorage.removeItem('sk1_current_module');
-    const f = document.getElementById('sk1-module-iframe'); if(f) f.remove();
-    out.textContent = 'Reset: boş beyin rejimi.'; status.textContent='Status: idle';
+    const f=document.querySelector('iframe.app'); if(f) f.remove();
+    out.textContent='Reset: boş beyin.'; status.textContent='Status: idle';
+    inp.disabled=false; inp.value=''; inp.focus();
   });
-
-  profileBtn.addEventListener('click', ()=>{
-    const p = getDeviceProfile(); log('Device profile: '+JSON.stringify(p));
-  });
-
   storeKeyBtn.addEventListener('click', ()=>{
-    apiSection.style.display='block'; const k = prompt('OpenAI API açarını daxil et (isteğe bağlı).\nDaxil etsəniz brauzerdən birbaşa istifadə oluna bilər, production üçün server proxy tövsiyə olunur.');
-    if(k){ localStorage.setItem('sk1_api_key',k); log('API açarı yadda saxlandı (localStorage).'); }
+    apiSection.style.display='block'; const v = prompt('OpenAI API açarı (istəyə bağlı)'); if(v){ setApiKey(v); apiKeyInput.value=v; log('API açarı saxlandı.'); }
   });
+  lockBtn.addEventListener('click', ()=>{
+    lockAfterTransform = !lockAfterTransform; lockBtn.textContent = 'Çevrildikdən sonra kilidlə: ' + (lockAfterTransform? 'ON':'OFF');
+  });
+  inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const v=inp.value.trim(); if(v) { inp.value=''; handleCommand(v); } } });
 
-  // boot message
-  out.textContent = 'SK-1 hazır. Əmr yazın və Enter basın. (Demo)'; status.textContent='Status: ready';
-
+  // ---------- Boot ----------
+  if(getApiKey()){ apiSection.style.display='block'; apiKeyInput.value=getApiKey(); }
+  out.textContent='SK‑1 hazır. Əmr ver və Enter bas.';
+  status.textContent='Status: ready';
 })();
 </script>
 </body>
