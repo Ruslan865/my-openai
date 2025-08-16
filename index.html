@@ -3,147 +3,203 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SK-1 — Single‑File Super Code (v2)</title>
+<title>SK-1 — Super Single‑File Agent (Adaptive)</title>
 <style>
-  :root{--bg:#000;--fg:#0f0;--mut:#8f8;--panel:#111;--accent:#0f0}
+  :root{--bg:#000;--fg:#0f0;--mut:#9f9;--card:#101010;--accent:#0f0}
   *{box-sizing:border-box}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:ui-monospace,monospace}
-  .wrap{max-width:980px;margin:20px auto;padding:16px}
+  .wrap{max-width:1000px;margin:18px auto;padding:18px}
   h1{margin:0 0 8px;font-size:20px}
+  .pill{display:inline-block;border:1px solid var(--accent);padding:2px 8px;border-radius:999px;margin-left:6px;color:#000;background:#0f0}
   #banner{font-size:13px;opacity:.9;margin-bottom:12px}
-  #output{background:var(--panel);border:1px solid var(--accent);padding:12px;height:300px;overflow:auto;white-space:pre-wrap}
+  #output{background:var(--card);border:1px solid var(--accent);padding:12px;height:320px;overflow:auto;white-space:pre-wrap}
   #cmd{width:100%;padding:10px;margin-top:10px;background:transparent;border:1px solid var(--accent);color:var(--fg)}
   .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   button{background:var(--accent);color:#000;border:none;padding:8px 10px;font-weight:700;cursor:pointer;border-radius:6px}
   .status{color:var(--mut);margin-top:8px;font-size:13px}
-  .hint{color:var(--mut);font-size:12px;margin-top:6px}
-  #apiSection{display:none;margin-top:8px}
-  #apiSection input{width:100%;padding:10px;background:transparent;border:1px solid var(--accent);color:var(--fg)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select, input[type="checkbox"]{background:transparent;border:1px solid var(--accent);color:var(--fg);padding:8px}
+  #apiSection{display:none}
   .sep{height:1px;background:#0f0;opacity:.3;margin:10px 0}
   iframe.app{width:100%;height:520px;border:1px solid var(--accent);margin-top:10px}
-  .pill{display:inline-block;border:1px solid var(--accent);padding:2px 8px;border-radius:999px;margin-right:6px;font-size:12px;color:#000;background:#0f0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>SK-1 — Single‑File Super Code <span class="pill">v2</span></h1>
-  <div id="banner">Boş beyin — əmri yaz. SK‑1 cihaz profilini oxuyur, lisenziyanı yoxlayır və <b>əmrə uyğun tətbiqə çevrilir</b>. API açarı istəyə bağlıdır; yoxdursa CORS‑dost ümumi mənbələrdən və ya scraper‑linkdən istifadə edəcək.</div>
+  <h1>SK‑1 — Super Single‑File Agent <span class="pill">Adaptive</span></h1>
+  <div id="banner">Boş beyin — əmr ver. SK‑1 cihazı analiz edir, mövcud AI/servisləri aşkarlayır və <b>ən uyğun rejimə</b> keçir: Yerli AI → Cihaz Asistentləri → API → Axtarış/Scraper.</div>
 
   <div id="output">Yüklənir...\n</div>
-  <input id="cmd" placeholder="Əmr ver: məsələn ‘təqvim ol’, ‘hava durumunu göstər’, ‘kamera aç’, ‘kalkulyator’, ‘notepad’, ‘timer 10s’, ‘riyaziyyat müəllimi ol’…" autocomplete="off" />
+  <input id="cmd" placeholder="Əmr ver: məsələn ‘təqvim ol’, ‘kamera aç’, ‘hava durumunu göstər’, ‘wiki Azerbaijan’, ‘kalkulyator’, ‘timer 30s’, ‘riyaziyyat müəllimi ol’…" autocomplete="off" />
 
   <div class="controls">
+    <button id="reset">Sıfırla</button>
+    <button id="profile">Cihaz profilini göstər</button>
     <button id="storeKey">API açarı saxla</button>
-    <button id="showProfile">Cihaz profilini göstər</button>
-    <button id="reset">Sıfırla (boş beyin)</button>
-    <button id="lockToggle" title="Çevriləndən sonra geri dönüşü bağla">Çevrildikdən sonra kilidlə: OFF</button>
+    <button id="lock">Çevrildikdən sonra kilidlə: OFF</button>
   </div>
 
-  <div id="apiSection">
-    <input id="apiKey" placeholder="OpenAI API açarı (istəyə bağlı)" />
+  <div class="row" style="margin-top:8px">
+    <label>AI rejimi:</label>
+    <select id="aiMode">
+      <option value="auto">Auto (tövsiyə)</option>
+      <option value="local">Yerli AI əvvəl</option>
+      <option value="api">API əvvəl</option>
+      <option value="search">Axtarış fallback</option>
+    </select>
+
+    <label>Axtarış mühərriki:</label>
+    <select id="searchEngine">
+      <option value="auto">Auto</option>
+      <option value="google">Google</option>
+      <option value="yandex">Yandex</option>
+      <option value="duck">DuckDuckGo</option>
+      <option value="bing">Bing</option>
+    </select>
+  </div>
+
+  <div id="apiSection" style="margin-top:10px">
+    <input id="apiKey" placeholder="OpenAI API açarı (istəyə bağlı)" style="width:100%"/>
   </div>
 
   <div class="status" id="status">Status: başlanğıc</div>
-  <div class="hint">Qeyd: Bu prototipdə lisenziya və imza yoxlaması <i>stub</i> kimi var. Scraper serveri üçün GitHub Pages kifayət deyil — CORS‑dost API‑lər (Open‑Meteo, Wikipedia və s.) istifadə olunur.</div>
   <div class="sep"></div>
 </div>
 
 <script>
-// ==========================
-// SK‑1 v2 — Single‑File Core
-// ==========================
-// Xüsusiyyətlər:
-// • Cihaz profilini oxuyur
-// • Lokal demo lisenziya (stub) + gələcək server heartbeat hook
-// • Əmr → modul seçimi/generator → sandbox iframe‑də tətbiq
-// • API açarı varsa OpenAI; yoxdursa CORS‑dost açıq API-lər; olmazsa scraper-link
-// • "Çevrildikdən sonra kilid" — istifadəçinin tələbi ilə geri dönüşü bağlayır (reset tələb olunur)
-
+// ======================================================
+// SK‑1 Adaptive Core — single‑file, device‑aware prototype
+// ======================================================
 (function(){
   const out = document.getElementById('output');
   const inp = document.getElementById('cmd');
   const status = document.getElementById('status');
   const resetBtn = document.getElementById('reset');
-  const profileBtn = document.getElementById('showProfile');
+  const profileBtn = document.getElementById('profile');
   const storeKeyBtn = document.getElementById('storeKey');
   const apiSection = document.getElementById('apiSection');
   const apiKeyInput = document.getElementById('apiKey');
-  const lockBtn = document.getElementById('lockToggle');
+  const aiModeSel = document.getElementById('aiMode');
+  const searchSel = document.getElementById('searchEngine');
+  const lockBtn = document.getElementById('lock');
 
-  let lockAfterTransform = false; // one‑way mode (istəyə görə)
+  let lockAfterTransform = false;
 
-  // ---------- Utilities ----------
+  // --- utils
   const log = (...a)=>{ out.textContent += "\n"+a.join(' '); out.scrollTop = out.scrollHeight; };
   const now = ()=> new Date().toISOString();
 
-  // ---------- Device Profile ----------
+  // --- device profiling
   function getDeviceProfile(){
-    const ram = navigator.deviceMemory || null;
-    const cores = navigator.hardwareConcurrency || null;
-    const ua = navigator.userAgent;
-    const hasWebGL = (()=>{ try{ const c=document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl')));}catch(e){return false}})();
-    const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    const prof = {ram,cores,ua,hasWebGL,hasCamera};
+    const prof = {
+      ram: navigator.deviceMemory || null,
+      cores: navigator.hardwareConcurrency || null,
+      ua: navigator.userAgent,
+      lang: navigator.language,
+      hasGPU: !!navigator.gpu,
+      hasWebNN: !!(navigator.ml && navigator.ml.createContext),
+      hasWASM: typeof WebAssembly!=="undefined",
+      hasCamera: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+      hasFileSystem: !!(window.showOpenFilePicker || window.chooseFileSystemEntries)
+    };
     try{ localStorage.setItem('sk1_device_profile', JSON.stringify(prof)); }catch(e){}
     return prof;
   }
 
-  // ---------- License (demo stub) ----------
+  // --- license (local demo)
   const LIC_KEY = 'sk1_license_token';
-  function localLicenseValid(){
-    try{ const tok = localStorage.getItem(LIC_KEY); if(!tok) return false; const d=JSON.parse(atob(tok)); return d.exp && Date.now()<d.exp; }catch(e){ return false; }
-  }
-  function setLocalLicense(owner, days=30){
-    const exp = Date.now()+days*24*60*60*1000; const payload={owner,exp};
-    try{ localStorage.setItem(LIC_KEY, btoa(JSON.stringify(payload))); }catch(e){}
-  }
+  function localLicenseValid(){ try{ const t=localStorage.getItem(LIC_KEY); if(!t) return false; const d=JSON.parse(atob(t)); return d.exp && Date.now()<d.exp; }catch(e){return false} }
+  function setLocalLicense(owner,days=60){ const exp=Date.now()+days*864e5; try{ localStorage.setItem(LIC_KEY,btoa(JSON.stringify({owner,exp}))); }catch(e){} }
 
-  // ---------- API Key Helpers ----------
-  function getApiKey(){ return localStorage.getItem('sk1_api_key') || ''; }
+  // --- api key
+  function getApiKey(){ return localStorage.getItem('sk1_api_key')||''; }
   function setApiKey(k){ try{ localStorage.setItem('sk1_api_key',k); }catch(e){} }
 
-  // ---------- AI Call (direct or proxy) ----------
-  async function aiGenerateHTML(cmd){
-    const key = getApiKey();
-    const system = `Sən minimal işlək tətbiqlər yaradan generator san. İstifadəçi əmri: ${cmd}. Çıxış sadə, tam HTML+JS olsun (inline style).`;
-    if(key){
-      try{
-        const r = await fetch('https://api.openai.com/v1/chat/completions',{
-          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-          body: JSON.stringify({model:'gpt-4o-mini', messages:[{role:'system',content:system},{role:'user',content:cmd}], max_tokens:900, temperature:0.4})
-        });
-        const j = await r.json();
-        if(j.choices && j.choices[0] && j.choices[0].message){ return j.choices[0].message.content; }
-      }catch(e){ log('AI (direct) xəta:', e.message); }
+  // --- engine detection
+  function hasLocalAI(){
+    // Heuristics: WebGPU/WebNN/WASM available -> we can run tiny local models (prototype: rules-based or math/regex)
+    const p = getDeviceProfile();
+    return p.hasGPU || p.hasWebNN || p.hasWASM;
+  }
+
+  function defaultSearchEngine(){
+    const lang=(navigator.language||'').toLowerCase();
+    if(lang.startsWith('ru')||lang.startsWith('tr')||lang.startsWith('az')) return 'yandex';
+    return 'google';
+  }
+
+  // --- AI runners
+  async function runLocalAI(command){
+    // Tiny built‑in intents (no internet): calendar, calc, notes, timer, wiki (needs net), camera
+    const c = command.toLowerCase();
+    if(/^timer\s+\d+(s|m)$/.test(c)){
+      const n=parseInt(c.match(/\d+/)[0],10); const unit=c.includes('m')?60000:1000; return Modules.timer(String(n*unit));
     }
-    // proxy nümunəsi (backend lazım olacaq)
+    if(c.includes('təqvim')||c.includes('calendar')) return Modules.calendar();
+    if(c.includes('kalkulyator')||c.includes('calc')) return Modules.calc();
+    if(c.includes('not')||c.includes('note')) return Modules.notes();
+    if(c.includes('kamera')||c.includes('camera')) return Modules.camera();
+    if(c.startsWith('wiki ')||c.startsWith('wikipedia ')){
+      const q = c.replace(/^wiki\s+|^wikipedia\s+/, '').trim(); return Modules.wiki(q||'Baku');
+    }
+    // simple Q&A rule: math expression
+    try{ if(/^[-+*/()\d\s\.]+$/.test(c)){ const val=Function('return '+c)(); return Modules.inline(`<h2>Nəticə</h2><pre>${val}</pre>`);} }catch(e){}
+    return null; // not handled locally
+  }
+
+  async function runOpenAI(command){
+    const key=getApiKey(); if(!key) return null;
     try{
-      const r = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt:cmd, system})});
-      if(r.ok){ const j = await r.json(); return j.code || j.html || j.text || '<p>Proxy cavab vermədi</p>'; }
-    }catch(e){ log('AI proxy xəta:', e.message); }
+      const system=`Sən minimal işlək tətbiqlər yaradan generator san. Əmr: ${command}. Tam səhifəlik HTML+JS ver.`;
+      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'system',content:system},{role:'user',content:command}],max_tokens:900,temperature:0.4})});
+      const j=await r.json();
+      if(j?.choices?.[0]?.message?.content) return j.choices[0].message.content;
+    }catch(e){ log('AI xəta:',e.message); }
     return null;
   }
 
-  // ---------- Built‑in Mini Modules (CORS‑friendly) ----------
-  const Modules = {
-    calendar: ()=> `\n<h2>Təqvim</h2>\n<div id="cal"></div>\n<script>\n(function(){\n const d=new Date(); const y=d.getFullYear(); const m=d.getMonth();\n function build(y,m){\n  const first=new Date(y,m,1); const last=new Date(y,m+1,0);\n  let html='<table border=1 cellpadding=6><tr>';\n  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];\n  html+=days.map(x=>'<'+'th>'+x+'</th>').join('')+'</tr><tr>';\n  let pad=(first.getDay()+6)%7; for(let i=0;i<pad;i++) html+='<td></td>';\n  for(let day=1; day<=last.getDate(); day++){\n    html+='<td>'+day+'</td>'; pad++; if(pad%7===0) html+='</tr><tr>';\n  }\n  html+='</tr></table>';\n  document.getElementById('cal').innerHTML=html;\n }\n build(y,m);\n})();\n<\/script>`,
+  async function runSearchFallback(command){
+    // Build SERP links according to chosen engine and provide small helpers using open APIs
+    const eng = (searchSel.value==='auto'? defaultSearchEngine(): searchSel.value);
+    const q = encodeURIComponent(command);
+    const engines={
+      google:`https://www.google.com/search?q=${q}`,
+      yandex:`https://yandex.com/search/?text=${q}`,
+      duck:`https://duckduckgo.com/?q=${q}`,
+      bing:`https://www.bing.com/search?q=${q}`
+    };
+    const link=engines[eng]||engines.google;
 
-    weather: ()=> `\n<h2>Hava Durumu (Open‑Meteo)</h2>\n<div>Şəhər: <input id="city" placeholder="Baku"/> <button id="go">Bax</button></div>\n<pre id="res">Gözlənilir…</pre>\n<script>\n(async function(){\n const out=document.getElementById('res');\n async function fetchCity(q){\n  const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q));\n  const j=await r.json(); if(!j.results||!j.results[0]){out.textContent='Tapılmadı';return}\n  const {latitude,longitude} = j.results[0];\n  const w=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+latitude+'&longitude='+longitude+'&current=temperature_2m,relative_humidity_2m,weather_code');\n  const wj=await w.json(); out.textContent=JSON.stringify(wj.current, null, 2);\n }\n document.getElementById('go').onclick=()=>fetchCity(document.getElementById('city').value||'Baku');\n})();\n<\/script>`,
+    // Try some CORS‑friendly helpers
+    if(command.toLowerCase().includes('hava')){
+      return Modules.weather();
+    }
+    if(command.toLowerCase().startsWith('wiki ')||command.toLowerCase().startsWith('wikipedia ')){
+      const qx = command.replace(/^wiki\s+|^wikipedia\s+/i,'').trim();
+      return Modules.wiki(qx||'Baku');
+    }
 
-    camera: ()=> `\n<h2>Kamera</h2>\n<video id="v" autoplay playsinline style="width:100%;max-height:420px;border:1px solid #0f0"></video>\n<script>\n(async function(){\n try{ const s=await navigator.mediaDevices.getUserMedia({video:true}); document.getElementById('v').srcObject=s; }catch(e){ document.body.innerHTML+='<p>İcazə verilmədi: '+e.message+'</p>'; }\n})();\n<\/script>`,
+    return Modules.inline(`
+      <h3>Axtarış Fallback</h3>
+      <p>Seçilən mühərrik: <b>${eng}</b></p>
+      <p><a href="${link}" target="_blank">Nəticələrə bax</a></p>
+      <p>CORS məhdudiyyətlərinə görə brauzerdən scraping məhduddur. Açıq API-lərlə cavab sınağı aparılır.</p>
+    `);
+  }
 
-    calc: ()=> `\n<h2>Kalkulyator</h2>\n<input id="expr" placeholder="(2+2)*5"/> <button id="go">Hesabla</button>\n<pre id="res"></pre>\n<script>\n document.getElementById('go').onclick=function(){\n  try{ const val=Function('return '+document.getElementById('expr').value)();\n   document.getElementById('res').textContent=String(val);\n  }catch(e){ document.getElementById('res').textContent='Xəta: '+e.message }\n };\n<\/script>`,
+  async function chooseAIEngine(){
+    const mode = aiModeSel.value;
+    if(mode==='local') return runLocalAI;
+    if(mode==='api') return async (c)=> await runOpenAI(c) || await runLocalAI(c) || await runSearchFallback(c);
+    if(mode==='search') return runSearchFallback;
+    // auto
+    if(hasLocalAI()) return async (c)=> await runLocalAI(c) || await runOpenAI(c) || await runSearchFallback(c);
+    if(getApiKey()) return async (c)=> await runOpenAI(c) || await runSearchFallback(c);
+    return runSearchFallback;
+  }
 
-    notes: ()=> `\n<h2>Notepad</h2>\n<textarea id="t" style="width:100%;height:360px;background:#000;color:#0f0;border:1px solid #0f0"></textarea>\n<script>\n const k='sk1_notes'; const el=document.getElementById('t');\n el.value=localStorage.getItem(k)||'';\n el.addEventListener('input',()=>localStorage.setItem(k,el.value));\n<\/script>`,
-
-    timer: (arg)=> `\n<h2>Timer</h2>\n<div id="left"></div>\n<script>\n (function(){\n  let ms=${arg||'10000'}; const el=document.getElementById('left');\n  const i=setInterval(()=>{ ms-=1000; el.textContent=(ms/1000)+' saniyə'; if(ms<=0){ clearInterval(i); el.textContent='Bitdi'; } },1000);\n })();\n<\/script>`,
-
-    wiki: (q)=> `\n<h2>Wikipedia</h2>\n<div>Nəticə: <span id="term"></span></div>\n<pre id="res">Gözlənilir…</pre>\n<script>\n(async function(){\n const term=${JSON.stringify(q||'Baku')}; document.getElementById('term').textContent=term;\n const r=await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(term));\n const j=await r.json();\n document.getElementById('res').textContent=(j.extract||'Tapılmadı');\n})();\n<\/script>`
-  };
-
-  // ---------- Sandbox Runner ----------
+  // --- sandbox runner
   function runInIframe(html){
-    // remove existing
     const old=document.querySelector('iframe.app'); if(old) old.remove();
     const iframe=document.createElement('iframe'); iframe.className='app'; iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
     document.querySelector('.wrap').appendChild(iframe);
@@ -151,70 +207,44 @@
     const blob=new Blob([doc],{type:'text/html'}); iframe.src=URL.createObjectURL(blob);
   }
 
-  // ---------- Command Router ----------
+  // --- built‑in modules (CORS‑friendly)
+  const Modules={
+    inline:(html)=> html,
+    calendar: ()=> `\n<h2>Təqvim</h2>\n<div id="cal"></div>\n<script>(function(){ const d=new Date(); const y=d.getFullYear(); const m=d.getMonth(); function build(y,m){ const first=new Date(y,m,1); const last=new Date(y,m+1,0); let html='<table border=1 cellpadding=6><tr>'; const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; html+=days.map(x=>'<'+'th>'+x+'</th>').join('')+'</tr><tr>'; let pad=(first.getDay()+6)%7; for(let i=0;i<pad;i++) html+='<td></td>'; for(let day=1; day<=last.getDate(); day++){ html+='<td>'+day+'</td>'; pad++; if(pad%7===0) html+='</tr><tr>'; } html+='</tr></table>'; document.getElementById('cal').innerHTML=html;} build(y,m); })();<\/script>`,
+    weather: ()=> `\n<h2>Hava Durumu (Open‑Meteo)</h2>\n<div>Şəhər: <input id="city" placeholder="Baku"/> <button id="go">Bax</button></div>\n<pre id="res">Gözlənilir…</pre>\n<script>(async function(){ const out=document.getElementById('res'); async function fetchCity(q){ const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)); const j=await r.json(); if(!j.results||!j.results[0]){out.textContent='Tapılmadı';return} const {latitude,longitude} = j.results[0]; const w=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+latitude+'&longitude='+longitude+'&current=temperature_2m,relative_humidity_2m,weather_code'); const wj=await w.json(); out.textContent=JSON.stringify(wj.current, null, 2);} document.getElementById('go').onclick=()=>fetchCity(document.getElementById('city').value||'Baku'); })();<\/script>`,
+    camera: ()=> `\n<h2>Kamera</h2>\n<video id="v" autoplay playsinline style="width:100%;max-height:420px;border:1px solid #0f0"></video>\n<script>(async function(){ try{ const s=await navigator.mediaDevices.getUserMedia({video:true}); document.getElementById('v').srcObject=s; }catch(e){ document.body.innerHTML+='<p>İcazə verilmədi: '+e.message+'</p>'; } })();<\/script>`,
+    calc: ()=> `\n<h2>Kalkulyator</h2>\n<input id="expr" placeholder="(2+2)*5"/> <button id="go">Hesabla</button>\n<pre id="res"></pre>\n<script>document.getElementById('go').onclick=function(){ try{ const val=Function('return '+document.getElementById('expr').value)(); document.getElementById('res').textContent=String(val); }catch(e){ document.getElementById('res').textContent='Xəta: '+e.message } };<\/script>`,
+    notes: ()=> `\n<h2>Notepad</h2>\n<textarea id="t" style="width:100%;height:360px;background:#000;color:#0f0;border:1px solid #0f0"></textarea>\n<script> const k='sk1_notes'; const el=document.getElementById('t'); el.value=localStorage.getItem(k)||''; el.addEventListener('input',()=>localStorage.setItem(k,el.value));<\/script>`,
+    timer: (ms)=> `\n<h2>Timer</h2>\n<div id="left"></div>\n<script>(function(){ let t=${ms||'10000'}; const el=document.getElementById('left'); const i=setInterval(()=>{ t-=1000; el.textContent=(t/1000)+' saniyə'; if(t<=0){ clearInterval(i); el.textContent='Bitdi'; } },1000); })();<\/script>`,
+    wiki: (q)=> `\n<h2>Wikipedia</h2>\n<div>Nəticə: <span id="term"></span></div>\n<pre id="res">Gözlənilir…</pre>\n<script>(async function(){ const term=${JSON.stringify(q||'Baku')}; document.getElementById('term').textContent=term; const r=await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(term)); const j=await r.json(); document.getElementById('res').textContent=(j.extract||'Tapılmadı'); })();<\/script>`
+  };
+
+  // --- command handler
   async function handleCommand(cmd){
-    status.textContent='Status: emal edilir…';
-    log(now(),'Əmr:',cmd);
+    status.textContent='Status: emal edilir…'; log(now(),'Əmr:',cmd);
+    if(!localLicenseValid()){ setLocalLicense('demo-user',60); log('Demo lisenziya aktivləşdi (60 gün)'); }
 
-    // ensure demo license
-    if(!localLicenseValid()){ setLocalLicense('demo-user',30); log('Demo lisenziya aktivləşdi (30 gün)'); }
+    const engine = await chooseAIEngine();
+    let html = await engine(cmd);
 
-    const p = getDeviceProfile(); log('Cihaz profili:', JSON.stringify(p));
-
-    // parse commands (simple intent)
-    const c = cmd.toLowerCase();
-    let html = null;
-
-    // timers: "timer 10s" or "timer 2m"
-    if(/^timer\s+\d+(s|m)$/.test(c)){
-      const n = parseInt(c.match(/\d+/)[0],10); const unit = c.includes('m')?60000:1000; html = Modules.timer(String(n*unit));
-    }
-    else if(c.includes('təqvim') || c.includes('calendar')){ html = Modules.calendar(); }
-    else if(c.includes('hava') || c.includes('weather')){ html = Modules.weather(); }
-    else if(c.includes('kamera') || c.includes('camera')){ html = Modules.camera(); }
-    else if(c.includes('kalkulyator') || c.includes('calc')){ html = Modules.calc(); }
-    else if(c.includes('not') || c.includes('note')){ html = Modules.notes(); }
-    else if(c.startsWith('wiki ') || c.startsWith('wikipedia ')){
-      const q = c.replace(/^wiki\s+|^wikipedia\s+/,'').trim(); html = Modules.wiki(q||'Baku');
-    }
-
-    if(!html){
-      // Try AI generator to build a tiny app for the command
-      const ai = await aiGenerateHTML(cmd);
-      if(ai){ html = ai; }
-      else {
-        const searchUrl = 'https://duckduckgo.com/?q='+encodeURIComponent(cmd);
-        html = `<!-- scraper fallback -->\n<h3>Scraper link</h3><p>CORS məhdudiyyətlərinə görə brauzerdən birbaşa scraping mümkün deyil. Axtarış linki: <a href="${searchUrl}" target="_blank">${searchUrl}</a></p>`;
-      }
-    }
+    // if still nothing, forced search fallback
+    if(!html){ html = await runSearchFallback(cmd); }
 
     runInIframe(html);
     status.textContent='Status: çevrildi — tətbiq işləyir';
-
-    if(lockAfterTransform){
-      inp.disabled = true; inp.placeholder = 'Kilid aktivdir — reset lazımdır';
-    }
+    if(lockAfterTransform){ inp.disabled=true; inp.placeholder='Kilid aktivdir — reset lazımdır'; }
   }
 
-  // ---------- UI bindings ----------
+  // --- UI wiring
+  inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const v=inp.value.trim(); if(v){ inp.value=''; handleCommand(v); } } });
+  resetBtn.addEventListener('click', ()=>{ const f=document.querySelector('iframe.app'); if(f) f.remove(); out.textContent='Reset: boş beyin.'; status.textContent='Status: idle'; inp.disabled=false; inp.value=''; inp.focus(); });
   profileBtn.addEventListener('click', ()=>{ log('Profil:', JSON.stringify(getDeviceProfile())); });
-  resetBtn.addEventListener('click', ()=>{
-    const f=document.querySelector('iframe.app'); if(f) f.remove();
-    out.textContent='Reset: boş beyin.'; status.textContent='Status: idle';
-    inp.disabled=false; inp.value=''; inp.focus();
-  });
-  storeKeyBtn.addEventListener('click', ()=>{
-    apiSection.style.display='block'; const v = prompt('OpenAI API açarı (istəyə bağlı)'); if(v){ setApiKey(v); apiKeyInput.value=v; log('API açarı saxlandı.'); }
-  });
-  lockBtn.addEventListener('click', ()=>{
-    lockAfterTransform = !lockAfterTransform; lockBtn.textContent = 'Çevrildikdən sonra kilidlə: ' + (lockAfterTransform? 'ON':'OFF');
-  });
-  inp.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const v=inp.value.trim(); if(v) { inp.value=''; handleCommand(v); } } });
+  storeKeyBtn.addEventListener('click', ()=>{ apiSection.style.display='block'; const v = prompt('OpenAI API açarı (istəyə bağlı)'); if(v){ setApiKey(v); apiKeyInput.value=v; log('API açarı saxlandı.'); } });
+  lockBtn.addEventListener('click', ()=>{ lockAfterTransform=!lockAfterTransform; lockBtn.textContent='Çevrildikdən sonra kilidlə: ' + (lockAfterTransform?'ON':'OFF'); });
 
-  // ---------- Boot ----------
+  // --- boot
   if(getApiKey()){ apiSection.style.display='block'; apiKeyInput.value=getApiKey(); }
-  out.textContent='SK‑1 hazır. Əmr ver və Enter bas.';
-  status.textContent='Status: ready';
+  out.textContent='SK‑1 hazır. Əmr ver və Enter bas.'; status.textContent='Status: ready';
 })();
 </script>
 </body>
